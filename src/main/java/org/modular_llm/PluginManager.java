@@ -1,5 +1,7 @@
 package org.modular_llm;
 
+import org.modular_llm.plugins.WeatherPlugin;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,13 +10,14 @@ public class PluginManager {
 
     // Manually load known plugins
     public void loadPlugin(String pluginName) {
-        switch (pluginName) {
-            case "WeatherPlugin":
-                plugins.put(pluginName, new WeatherPlugin());
-                System.out.println("Loaded plugin: " + pluginName);
-                break;
-            default:
-                System.err.println("Unknown plugin: " + pluginName);
+        try {
+            String fullClassName = "org.modular_llm.plugins." + pluginName;
+            Class<?> pluginClass = Class.forName(fullClassName);
+            Plugin plugin = (Plugin) pluginClass.getDeclaredConstructor().newInstance();
+            plugins.put(pluginName, plugin);
+            System.out.println("Loaded plugin: " + pluginName);
+        } catch (Exception e) {
+            System.err.println("Failed to load plugin '" + pluginName + "': " + e.getMessage());
         }
     }
 

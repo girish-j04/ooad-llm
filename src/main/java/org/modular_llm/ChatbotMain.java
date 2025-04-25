@@ -10,47 +10,24 @@ import java.io.IOException;
 import java.util.Scanner;
 
 public class ChatbotMain {
-    public static void main(String[] args) {
-        // Initialize plugin system
+    public static void main(String[] args) throws Exception {
         PluginManager pm = new PluginManager();
-        System.out.println("Loading plugins...");
         pm.loadPlugin("WeatherPlugin");
+        pm.loadPlugin("FinancePlugin");
 
-        // Initialize AI model
-        LlamaModel llamaModel = null;
-        try {
-            ModelParameters modelParams = new ModelParameters()
-                    .setModel("models/tinyllama-1.1b-chat-v1.0.Q6_K.gguf")
-                    .setGpuLayers(43); // optional: tune based on system
+        LlamaModel model = new LlamaModel(new ModelParameters()
+                .setModel("models/tinyllama-1.1b-chat-v1.0.Q6_K.gguf")
+                .setGpuLayers(43));
 
-            llamaModel = new LlamaModel(modelParams);
-        } catch (Exception e) {
-            System.err.println("Failed to load model: " + e.getMessage());
-            return;
-        }
+        AIModel aiAdapter = new TinyLlamaAdapter(model);
+        ResponseCoordinator coordinator = new DefaultCoordinator(pm, aiAdapter);
 
-        // Create coordinator that uses actual model
-        AIModel modelWrapper = new TinyLlamaAdapter(llamaModel);
-        ResponseCoordinator coordinator = new DefaultCoordinator(pm, modelWrapper);
+        // Run terminal UI
+        new ChatbotTUI(coordinator).run();
 
-        // Chat loop
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Chatbot is ready. Type your message (type 'exit' to quit):");
-
-        while (true) {
-            System.out.print("You: ");
-            String input = scanner.nextLine();
-            if ("exit".equalsIgnoreCase(input)) break;
-
-            ChatbotResponse response = coordinator.handleInput(input);
-            System.out.println(response);
-        }
-
+        // Cleanup
         pm.unloadPlugin("WeatherPlugin");
-        scanner.close();
-
-        if (llamaModel != null) {
-            llamaModel.close(); // No need to catch IOException
-        }
+        pm.unloadPlugin("FinancePlugin");
+        model.close();
     }
 }

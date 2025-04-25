@@ -1,4 +1,4 @@
-package org.modular_llm;
+package org.modular_llm.plugins;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -7,6 +7,7 @@ import java.net.URLEncoder;
 import java.util.Scanner;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.modular_llm.Plugin;
 
 public class WeatherPlugin implements Plugin {
 
