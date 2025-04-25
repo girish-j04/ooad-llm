@@ -3,39 +3,92 @@ package org.modular_llm;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Scanner;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class WeatherPlugin implements Plugin {
-    // API key for accessing the OpenWeatherMap service (replace with a real key)
-    private static final String API_KEY = "API KEY";
 
-    // This method fetches the weather data for a given location
+    // This method will be called by PluginManager
     @Override
     public String execute(String location) {
+        double[] coords = getCoordinates(location);
+        if (coords == null) {
+            return "Unable to get coordinates for: " + location;
+        }
+
+        return getWeather(coords[0], coords[1], location);
+    }
+
+    // Gets weather from Open-Meteo given lat/lon
+    private String getWeather(double latitude, double longitude, String location) {
         try {
-            // Build the API URL using the provided location and API key
-            String api = "https://api.openweathermap.org/data/2.5/weather?q=" + location + "&appid=" + API_KEY;
-            // Open a connection to the API
+            String api = String.format(
+                    "https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current_weather=true",
+                    latitude, longitude
+            );
             HttpURLConnection conn = (HttpURLConnection) new URL(api).openConnection();
             conn.setRequestMethod("GET");
 
-            // If the request is successful (HTTP 200 OK)
             if (conn.getResponseCode() == 200) {
                 Scanner scanner = new Scanner(conn.getInputStream());
                 StringBuilder sb = new StringBuilder();
-                // Read the response data line by line
                 while (scanner.hasNext()) {
                     sb.append(scanner.nextLine());
                 }
                 scanner.close();
-                return "Weather in " + location + ": " + sb.toString();
+
+                JSONObject response = new JSONObject(sb.toString());
+                JSONObject weather = response.getJSONObject("current_weather");
+
+                return String.format(
+                        "Weather in %s: %.1f°C, Windspeed %.1f km/h",
+                        location,
+                        weather.getDouble("temperature"),
+                        weather.getDouble("windspeed")
+                );
             } else {
-                // If the response code is not 200, indicate a failure
-                return "Failed to fetch data.";
+                return "Failed to fetch weather data.";
+            }
+
+        } catch (Exception e) {
+            return "Exception while fetching weather: " + e.getMessage();
+        }
+    }
+
+    // Uses OpenStreetMap's Nominatim API to get lat/lon from a city name
+    private double[] getCoordinates(String city) {
+        try {
+            String encodedCity = URLEncoder.encode(city, "UTF-8");
+            String api = "https://nominatim.openstreetmap.org/search?q=" + encodedCity + "&format=json&limit=1";
+
+            HttpURLConnection conn = (HttpURLConnection) new URL(api).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");  // Required by Nominatim
+
+            if (conn.getResponseCode() == 200) {
+                Scanner scanner = new Scanner(conn.getInputStream());
+                StringBuilder sb = new StringBuilder();
+                while (scanner.hasNext()) {
+                    sb.append(scanner.nextLine());
+                }
+                scanner.close();
+
+                JSONArray results = new JSONArray(sb.toString());
+                if (results.length() == 0) {
+                    return null;
+                }
+
+                JSONObject firstResult = results.getJSONObject(0);
+                double lat = Double.parseDouble(firstResult.getString("lat"));
+                double lon = Double.parseDouble(firstResult.getString("lon"));
+                return new double[]{lat, lon};
+            } else {
+                return null;
             }
         } catch (IOException e) {
-            // Return any exception messages that occur during the process
-            return "Exception: " + e.getMessage();
+            return null;
         }
     }
 }
