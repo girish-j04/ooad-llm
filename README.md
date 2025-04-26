@@ -20,7 +20,7 @@ This project reimagines the traditional chatbot experience using a modular Java 
 
 ![Screenshot 1](./images/light_mode.png)
 
-![Screenshot 2](./screenshots/screenshot-dark.png)
+![Screenshot 2](./images/hotswap_dark.png)
 
 ---
 
