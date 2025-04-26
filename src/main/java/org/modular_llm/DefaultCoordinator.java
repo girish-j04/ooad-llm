@@ -1,6 +1,5 @@
 package org.modular_llm;
 
-
 import de.kherud.llama.LlamaModel;
 import de.kherud.llama.ModelParameters;
 
@@ -40,13 +39,24 @@ public class DefaultCoordinator implements ResponseCoordinator {
                                 .setModel("models/tinyllama-1.1b-chat-v1.0.Q6_K.gguf")
                                 .setGpuLayers(43));
                         this.switchModel(new TinyLlamaAdapter(llama));
-                        return new ChatbotResponse("system", "Switched to TinyLlama.");
+                        return new ChatbotResponse("system", "✅ Switched to TinyLLaMA.");
                     } catch (Exception e) {
-                        return new ChatbotResponse("system", "Failed to load TinyLlama.");
+                        return new ChatbotResponse("system", "❌ Failed to load TinyLLaMA.");
                     }
-                    // case "gpt4": implement other adapters later
+
+                case "mistral":
+                    try {
+                        LlamaModel mistral = new LlamaModel(new ModelParameters()
+                                .setModel("models/mistral-7b-instruct-v0.1.Q4_K_M.gguf")
+                                .setGpuLayers(43));
+                        this.switchModel(new MistralAdapter(mistral));
+                        return new ChatbotResponse("system", "✅ Switched to Mistral-7B.");
+                    } catch (Exception e) {
+                        return new ChatbotResponse("system", "❌ Failed to load Mistral-7B.");
+                    }
+
                 default:
-                    return new ChatbotResponse("system", "Unknown model: " + modelName);
+                    return new ChatbotResponse("system", "❓ Unknown model: " + modelName);
             }
         }
 
@@ -54,4 +64,3 @@ public class DefaultCoordinator implements ResponseCoordinator {
         return new ChatbotResponse("ai", reply);
     }
 }
-
